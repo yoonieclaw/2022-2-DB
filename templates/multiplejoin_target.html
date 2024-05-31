@@ -1,0 +1,180 @@
+{% extends "index.html"  %}
+{% block content %}
+<style>
+    .title {
+        margin-left: 15%;
+        padding: 0 20px;
+    }
+
+    .container {
+        margin-left: 15%;
+        padding: 0 20px;
+        padding-bottom: 60px;
+    }
+
+    table {
+        border-collapse: collapse;
+        font-size: 14.5px;
+        text-align: center;
+        margin-bottom: 20px;
+        width: 100%;
+    }
+
+    thead {
+        background: #bbdefb;
+    }
+    th {
+        border: 1px solid black;
+    }
+
+    td {
+        border: 1px solid black;
+    }
+
+</style>
+<h1 class="title">다중 결합</h1>
+<h3 class="title">Target 테이블 검색</h3>
+<h5 class="title">현재 선택된 Source 테이블</h5>
+<div class="container">
+    <table>
+        <thead>
+            <tr>
+                <th>테이블 명</th>
+                <th>레코드 수</th>
+                <th>대표 속성</th>
+                <th>대표 결합키</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <th id="tablename">{{table_name}}</th>
+                <th>{{total_record}}</th>
+                <th>{{repr_attr}}</th>
+                <th id="jkey">{{join_key}}</th>
+            </tr>
+        </tbody>
+    </table>
+</div>
+<h5 class="title">Source 테이블과 결합 가능한 테이블 목록</h5>
+<div class="container">
+    <table>
+        <thead>
+            <tr>
+                <th>테이블 명</th>
+                <th>레코드 수</th>
+                <th>대표 속성</th>
+                <th>대표 결합키</th>
+                <th>결합 테이블 선택</th>
+            </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+    </table>
+    <button onclick="redirectTo()">다음</button>
+</div>
+<script>
+    const jkey = document.getElementById('jkey').innerHTML
+    const tableName = document.getElementById('tablename').innerHTML
+    let selectedElement, unselectedElement;
+    let selectedElementList = new Set();
+    var url = '/searchtable?scan=T&jkey=' + jkey
+    fetch(url)
+    .then((res) => res.json())
+    .then((data) => {
+        let searchedTable = [];
+        for (table of data) {
+            if (table["table_name"] != tableName) {
+                searchedTable.push(table)
+            }
+        }
+        
+        if (searchedTable == '') {
+            alert('타겟테이블이 없습니다!')
+        } else {
+            let tbody = document.getElementById('tbody')
+            tbody.innerHTML = ''
+            let tr, tname, records, rattrs, rkeys, select;
+
+            for (const table of searchedTable) {
+
+                tr = document.createElement('tr');
+        
+
+                tname = document.createElement('td');
+                tname.innerHTML = table["table_name"];
+
+                records = document.createElement('td');
+                records.innerHTML = table["records"];
+
+                rattrs = document.createElement('td');
+                if (table["repr_attrs"].length > 1) {
+                    const uniqueTmp = {}
+                    table["repr_attrs"].forEach(element => {
+                        uniqueTmp[element] = true;
+                    });
+                    const unique = Object.keys(uniqueTmp)
+
+                    rattrs.innerHTML = '';
+                    for (const rattr of unique) {
+                        rattrs.innerHTML += rattr + ', ';
+                    }
+                    rattrs.innerHTML = rattrs.innerHTML.slice(0, -2);
+
+                } else if(table["repr_attrs"].length == 1) {
+                    rattrs.innerHTML = table["repr_attrs"];
+
+                } else {
+                        rattrs.innerHTML = '-'
+                }
+
+                rkeys = document.createElement('td');
+                if (table["join_keys"].length > 1) {
+                    rkeys.innerHTML = '';
+                    for (const rkey of table["join_keys"]) {
+                        rkeys.innerHTML += rkey + ', ';
+                    }
+                    rkeys.innerHTML = rkeys.innerHTML.slice(0, -2);
+                } else if(table["join_keys"].length == 1) {
+                    rkeys.innerHTML = table["join_keys"];
+                } else {
+                    rkeys.innerHTML = '-'
+                }
+                select = document.createElement('td');
+                select.id = table["table_name"];
+                select.onclick = () => {
+                    selectedElement = table["table_name"]
+                    if (selectedElementList.has(selectedElement)) {
+                        document.getElementById(selectedElement).style.backgroundColor = 'white';
+                        selectedElementList.delete(selectedElement)
+                    } else {
+                        selectedElementList.add(selectedElement)
+                        document.getElementById(selectedElement).style.backgroundColor = 'lightgray';
+                    }
+                    console.log(selectedElementList)
+                    
+                }
+
+                tr.appendChild(tname);
+                tr.appendChild(records);
+                tr.appendChild(rattrs);
+                tr.appendChild(rkeys);
+                tr.appendChild(select);
+
+
+                tbody.appendChild(tr);
+
+                }
+            }
+        })
+        
+    function redirectTo() {
+        let selectedString = ''
+        for (const s of selectedElementList) {
+            selectedString += s + '+'
+        }
+        console.log(selectedString.split(','))
+        if (selectedElementList.size > 1) window.location.href = '/multiplejoin/' + tableName + '+' + jkey + '/' + selectedString;
+        else if (selectedElementList.size == 1) alert('한 개 이상의 테이블을 선택해주세요')
+        else alert('선택된 테이블이 없습니다');
+    }
+</script>
+{% endblock %}

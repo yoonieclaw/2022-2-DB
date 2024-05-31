@@ -1,0 +1,89 @@
+{% extends "index.html"  %}
+{% block content %}
+    <style>
+        .login-form {
+            display: flex;
+            flex-direction: column;
+            margin-top: 30px;
+            margin-bottom: 30px;
+        }
+        .login-form input {
+            width: 300px;
+            height: 30px;
+            border: 1px solid black;
+            margin-top: 10px
+        }
+        #connect {
+            width: 300px;
+            height: 30px;
+            background-color: #009688;
+            border: none;
+            color: white;
+        }
+        #disconnect {
+            width: 300px;
+            height: 30px;
+            margin-top: 10px;
+        }
+        button {
+            width: 150px;
+            height: 30px;
+        }
+    </style>
+    <h1 style="margin-left:15%; padding: 0 20px">DB 연결관리</h1>
+    <div style="margin-left:15%; padding: 0 20px">
+        <button>DB 연결</button>
+        <button onclick="checkConnection()">CSV 업로드</button>
+        <form method="post" action="/dblogin">
+            <div class="login-form">
+                <label for="host">HOST: </label>
+                <input type="text" name="host" id="host" autofocus required>
+                <br>
+
+                <label for="port">PORT: </label>
+                <input type="number" name="port" id="port" required>
+                <br>
+
+                <label for="database">DATABASE: </label>
+                <input type="text" name="database" id="database" required>
+                <br>
+
+                <label for="user">USER: </label>
+                <input type="text" name="user" id="user" required>
+                <br>
+
+                <label for="password">PASSWORD: </label>
+                <input type="password" name="password" id="password">
+            </div>
+            <div>
+                <input type="submit" value="Connect" id="connect">
+            </div>
+        </form>
+        <form method="post" action="/dblogin/disconnect">
+            <input type="submit" value="Disconnect" id="disconnect">
+        </form>
+        <p style="color:red">{{ msg }}</p>
+    </div>
+    <script>
+        function checkConnection() {
+            if ("{{ session['database'] }}") window.location.href='/dblogin/upload'
+            else alert('DB에 연결되어 있지 않음')
+        }
+        
+        if ("{{ session['database'] }}") {
+            document.getElementById('host').disabled = true;
+            document.getElementById('port').disabled = true;
+            document.getElementById('database').disabled = true;
+            document.getElementById('user').disabled = true;
+            document.getElementById('password').disabled = true;
+            document.getElementById('connect').disabled = true;
+
+            document.getElementById('host').value = "{{ host }}";
+            document.getElementById('port').value = "{{ port }}";
+            document.getElementById('database').value = "{{ database }}";
+            document.getElementById('user').value = "{{ user }}";
+        } else {
+            document.getElementById('disconnect').disabled = true;
+        }
+    </script>
+{% endblock %}

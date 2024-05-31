@@ -1,0 +1,432 @@
+{% extends "index.html" %}
+
+{% block head %}
+  <!--진행상황 동기화를 위해 새로고침 설정-->
+  {% if table_state == 0 %}
+  <meta http-equiv="refresh" content="1;">
+  {% endif %}
+{% endblock %} 
+{% block content %}
+<style>
+  button {
+    width: 150px;
+    height: 30px;
+  }
+
+  button:focus {
+    background-color: grey;
+}
+  .title {
+            margin-left: 15%;
+            padding: 0 20px;
+  }
+
+  .container {
+            margin-left: 15%;
+            padding: 0 20px;
+            padding-bottom: 60px;
+  }
+
+  table {
+    border-collapse: collapse;
+    font-size: 14.5px;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .join{
+    font-size: 9px;
+  }
+
+  thead {
+    background: #bbdefb;
+  }
+
+  th {
+    border: 1px solid black;
+  }
+
+  td {
+    border: 1px solid black;
+  }
+  .button_container{
+    display: flex;
+    flex-direction: row;
+    justify-content: flex-start;
+  }
+
+  #title_button{
+    margin-right: 20px;
+    background-color: white;
+    color: black;
+    text-align: center;
+    text-decoration: none;
+    font-size: 16px;
+    width: 100%
+  }
+  .table_button{
+    background-color: white;
+    border: none;
+    color: black;
+    text-align: center;
+    text-decoration: none;
+    font-size: 14.5px;
+    width: 100%
+  }
+
+
+  button:hover {
+    cursor: pointer;
+}
+</style>
+<!-- <p style="margin-left: 15%">결과조회입니다</p> -->
+<h1 class="title">결과 조회 </h1>
+<!--하이퍼링크 버튼-->
+<div class="container button_container">
+  <button id="title_button" onclick="location.href = '{{ result_root }}scan/' ">
+    속성 스캔 결과 조회
+  </button>
+  <button id="title_button" onclick="location.href = '{{ result_root }}JOINlist/SINGLE/NONE/NONE/NONE/' ">
+    단일 결합 결과 조회
+  </button>
+  <button id="title_button" onclick="location.href = '{{ result_root }}JOINlist/MULTIPLE/NONE/NONE/NONE/' ">
+    다중 결합 결과 조회
+  </button>
+</div>
+
+<!--스캔 테이블 선택 화면-->
+{% if  type == 'scan_select' %}
+<div class="container">
+  <h3>속성 스캔 완료 테이블 목록</h3>
+  <table>
+    <!--테이블 각 열 설명-->
+    <thead>
+      <tr>
+        <th>테이블 명</th>
+        <th>레코드 수</th>
+        <th>테이블 상세 버튼</th>
+      </tr>
+    </thead>
+    
+  
+    <!--테이블 내용 채우기-->
+    {% for row in table_rows %}
+      <tr>
+        {% for val in row %}
+          <td>{{val}}</td>
+        {% endfor %}
+          <td> <button class="table_button" onclick = "location.href = '{{result_root}}scan/{{row[0]}}/'">{{ row[0] }}</button> </td>
+      <tr>
+    {% endfor %}
+  
+  </table>
+  
+</div>
+
+
+<!--스캔 결과 표시-->
+{% elif type == 'scan_result' %}
+  <!--csv파일 다운로드 버튼-->
+  <div class="container">
+    <button type="button" onclick="numericalTableToCSV('{{table_name}}_numerical_scan.csv')">
+      수치속성 CSV
+  </button>
+    <button type="button" onclick="categoricalTableToCSV('{{table_name}}_categorical_scan.csv')">
+      범주속성 CSV
+  </button>
+  <!--숫자 스캔결과-->
+  <table id = "numerical_result">
+    <caption>{{table_name}}|수치 속성</caption>
+    <thead>
+      <tr>
+        <th>속성명</th>
+        <th>데이터 타입</th>
+        <th>레코드 개수</th>
+        <th>상이 수치 값</th>
+        <th>NULL 레코드 개수</th>
+        <th>NULL 레코드 비율</th>
+        <th>0 레코드 수</th>
+        <th>0 레코드 비율</th>
+        <th>최소 값</th>
+        <th>최대 값</th>
+        <th>결합키 후보</th>
+        <th>대표 속성</th>
+        <th>대표 결합키</th>
+      </tr>
+    </thead>
+
+
+    {% for row in numeric_rows%}
+      <tr> 
+          {% for val in row %}
+            <td>{{val}}</td>
+          {% endfor %}
+      </tr>
+    {% endfor %}
+  </table>
+
+<!--문자 스캔결과-->
+  <table id = "categorical_result">
+    <caption>{{table_name}}|범주 속성</caption>
+    <thead>
+      <tr>
+        <th>속성명</th>
+        <th>데이터 타입</th>
+        <th>레코드 개수</th>
+        <th>상이 범주 값</th>
+        <th>NULL 레코드 수</th>
+        <th>NULL 레코드 비율</th>
+        <th>특수문자 포함 레코드 수</th>
+        <th>특수문자 포함 레코드 비율</th>
+        <th>결합키 후보</th>
+        <th>대표 속성</th>
+        <th>대표 결합키</th>
+      </tr>
+    </thead>
+    
+
+    {% for rows in categoric_rows%}
+      <tr> 
+          {% for vals in rows %}
+            <td>{{vals}}</td>
+          {% endfor %}
+      </tr>
+    {% endfor %}
+  </table>
+  </div>
+
+  
+  
+{% elif type == 'SINGLE' or type == 'MULTIPLE' %}
+  <!--단일결합 결과조회-->
+
+  <!--조건선택 부분-->
+  <div class ="container">
+    <form name = "single_select_condition" method = "post">
+      <fieldset>
+        <legend>검색 조건 입력</legend>
+          포함할 테이블 : <input type ="text" id = "used_table"> <br>
+          최소 결합률 : <input type = "text" id = "joined_ratio_limit"> <br>
+          최소 레코드 수 : <input type = "text" id = "min_record_num_limit"> <br>
+      </fieldset>
+    </form>
+    <button onclick = 'conditiond_result()'>조건 맞게 검색</button>
+
+    <!--현재 화면에보이는 결과 CSV로 다운로드-->
+    <!--함수에 집어넣는 값 : 다운로드 받을 파일 명-->
+    <button onclick = "tableToCSV( '{{type}}_JoinResult.csv' )">CSV로 다운로드</button> 
+
+    <!--결과 테이블-->
+    <table class="join">
+      <!--맨 윗행(설명하는부분)-->
+      <thead>
+        <tr>
+          <th>ID</th>
+          {% if type == "MULTIPLE" %}
+            <th>Inner ID</th>
+          {% endif %}
+          <th>테이블 A</th>
+          <th>A 레코드수</th>
+          <th>A 결합키</th>
+          <th>테이블 B</th>
+          <th>B 레코드수</th>
+          <th>B 결합키</th>
+          <th>결합테이블 이름</th>
+          <th>결합키(표준이름)</th>
+          <th>결합테이블 레코드수</th>
+          <th>A 결합 성공률</th>
+          <th>B 결합 성공률</th>
+          <th>완료여부</th>
+          <th>진행률</th>
+          <th>결과링크</th>
+        </tr>
+      </thead>
+      
+      <!--테이블 내용 완성-->
+      {% for row in joined_result %}
+        <tr>
+        {% for val in row %}
+          <td>{{val}}</td>
+        {% endfor %}
+
+          {% if type == "SINGLE" %}
+            <td> <a href = "{{result_root}}JOINresult/SINGLE/{{row[0]}}/NONE/">세부링크</a> <!--결합결과로 링크 이동 (아직 이름을 잘 모름)-->
+            
+          {% elif type == "MULTIPLE" %}
+            <td> <a href = "{{result_root}}JOINresult/MULTIPLE/{{row[0]}}/{{row[1]}}/">세부링크</a>
+          
+          {% endif %}
+        </tr>
+      {% endfor %} 
+    </table>
+  </div>
+
+<!--결합결과 테이블 보여줌-->
+{%elif type == 'result'%}
+  <div class = "container">
+    <button onclick ="tableToCSV('{{type}}_{{id}}_{{inner_id}}_joinresult.csv')">CSV 다운로드</button>
+    <table class="join">
+      {% for row in table_result %}
+        <tr>
+          {% for val in row %}
+            <td>{{val}}</td>
+          {% endfor %}
+        </tr>
+      {% endfor %}
+    </table>
+
+  </div>
+{% endif %}
+
+  <script type="text/javascript">
+    
+    function conditiond_result(){
+      //결합결과 조회페이지에서 검색기능을 활용했을 시, 그에 대응되는 페이지로 이동하게 하는 함수
+
+      var used_table_part = document.getElementById('used_table').value;
+      var joined_ratio_limit_part = document.getElementById('joined_ratio_limit').value;
+      var min_record_num_limit_part = document.getElementById('min_record_num_limit').value;
+
+      if (used_table_part == ""){
+        used_table_part = "NONE";
+      }
+      if (joined_ratio_limit_part == ""){
+        joined_ratio_limit_part = "NONE";
+      }
+      if (min_record_num_limit_part == ""){
+        min_record_num_limit_part = "NONE";
+      }
+      
+      const address = "{{ result_root }}JOINlist/{{ type }}/"+ used_table_part + "/"+ joined_ratio_limit_part + "/" + min_record_num_limit_part + "/";
+
+      window.location.href = address;
+    }
+
+    function numericalTableToCSV(file_name) {
+
+      // Variable to store the final csv data
+      var csv_data = [];
+
+      // Get each row data
+      var rows = document.querySelectorAll('#numerical_result tr');
+      for (var i = 0; i < rows.length; i++) {
+
+          // Get each column data
+          var cols = rows[i].querySelectorAll('td,th');
+
+          // Stores each csv row data
+          var csvrow = [];
+          for (var j = 0; j < cols.length; j++) {
+
+              // Get the text data of each cell
+              // of a row and push it to csvrow
+              csvrow.push(cols[j].innerHTML);
+          }
+
+          // Combine each column value with comma
+          csv_data.push(csvrow.join(","));
+      }
+
+      // Combine each row data with new line character
+      csv_data = csv_data.join('\n');
+
+      // Call this function to download csv file
+      downloadCSVFile(csv_data,file_name);
+
+    }
+    function categoricalTableToCSV(file_name) {
+
+      // Variable to store the final csv data
+      var csv_data = [];
+
+      // Get each row data
+      var rows = document.querySelectorAll('#categorical_result tr');
+      for (var i = 0; i < rows.length; i++) {
+
+          // Get each column data
+          var cols = rows[i].querySelectorAll('td,th');
+
+          // Stores each csv row data
+          var csvrow = [];
+          for (var j = 0; j < cols.length; j++) {
+
+              // Get the text data of each cell
+              // of a row and push it to csvrow
+              csvrow.push(cols[j].innerHTML);
+          }
+
+          // Combine each column value with comma
+          csv_data.push(csvrow.join(","));
+      }
+
+      // Combine each row data with new line character
+      csv_data = csv_data.join('\n');
+
+      // Call this function to download csv file
+      downloadCSVFile(csv_data,file_name);
+
+  }
+
+    function tableToCSV(file_name) {
+
+        // Variable to store the final csv data
+        var csv_data = [];
+
+        // Get each row data
+        var rows = document.getElementsByTagName('tr');
+        for (var i = 0; i < rows.length; i++) {
+
+            // Get each column data
+            var cols = rows[i].querySelectorAll('td,th');
+
+            // Stores each csv row data
+            var csvrow = [];
+            for (var j = 0; j < cols.length; j++) {
+
+                // Get the text data of each cell
+                // of a row and push it to csvrow
+                csvrow.push(cols[j].innerHTML);
+            }
+
+            // Combine each column value with comma
+            csv_data.push(csvrow.join(","));
+        }
+
+        // Combine each row data with new line character
+        csv_data = csv_data.join('\n');
+
+        // Call this function to download csv file
+        downloadCSVFile(csv_data,file_name);
+
+    }
+
+    function downloadCSVFile(csv_data,file_name) {
+
+        // Create CSV file object and feed
+        // our csv_data into it
+        CSVFile = new Blob([csv_data], {
+            type: "text/csv"
+        });
+
+        // Create to temporary link to initiate
+        // download process
+        var temp_link = document.createElement('a');
+
+        // Download csv file
+        temp_link.download = file_name;
+        var url = window.URL.createObjectURL(CSVFile);
+        temp_link.href = url;
+
+        // This link should not be displayed
+        temp_link.style.display = "none";
+        document.body.appendChild(temp_link);
+
+        // Automatically click the link to
+        // trigger download
+        temp_link.click();
+        document.body.removeChild(temp_link);
+    }
+</script>
+
+
+
+{% endblock %}

@@ -1,0 +1,88 @@
+{% extends "index.html"  %}
+{% block content %}
+    <style>
+        #container {
+            margin-left: 15%;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-around;
+        }
+
+        #container div {
+            width: 40%;
+        }
+
+        table {
+            border-collapse: collapse;
+            margin-bottom: 50px;
+        }
+
+        th {
+            text-align: left;
+            border-bottom: 2px solid black;
+        }
+
+        td {
+            text-align: left;
+            height: 35px;
+            border-bottom: 1px solid lightgray;
+        }
+
+        .name:disabled {
+            height: 30px;
+            background-color: white;
+            border: none;
+        }
+
+        .btn {
+            width: 90%;
+            height: 25px;
+            border: none;
+            border-radius: 3px;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+    </style>
+    <div id="container">
+        <div id="ra">
+            <h3>대표 속성 사전</h3>
+            <table style="width: 100%">
+                <thead>
+                    <tr>
+                        <th colspan="3">속성 명</th>
+                    </tr>
+                </thead>
+                <tbody id="ratbody">
+                </tbody>
+            </table>
+            <form action="/preferences/addnew" method="post">
+                <h3>대표 속성 추가</h3>
+                <input type="text" name="newname" style="width: 75%" autofocus>
+                <input type="hidden" name="type" value="ra">
+                <input type="submit" value="추가" class="btn" style="float: right; width: 20%; background-color: #009688;">
+            </form>
+        </div>
+        <div id="jk">
+            <h3>대표 결합키 사전</h3>
+            <table style="width: 100%">
+                <thead>
+                    <tr>
+                        <th colspan="3">결합키 명</th>
+                    </tr>
+                </thead>
+                <tbody id="jktbody">
+                </tbody>
+            </table>
+            <form action="/preferences/addnew" method="post">
+                <h3>대표 결합키 추가</h3>
+                <input type="text" name="newname" style="width: 75%">
+                <input type="hidden" name="type" value="jk">
+                <input type="submit" value="추가" class="btn" style="float: right; width: 20%; background-color: #009688;">
+            </form>
+        </div>
+        <form action="/preferences/edit" method="post" id="edit"></form>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/preferences.js') }}"></script>
+{% endblock %}

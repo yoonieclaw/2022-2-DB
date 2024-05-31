@@ -1,0 +1,220 @@
+{% extends "index.html"  %}
+{% block content %}
+    <style>
+        .title {
+            margin-left: 15%;
+            padding: 0 20px;
+        }
+
+        .container {
+            margin-left: 15%;
+            padding: 0 20px;
+            padding-bottom: 60px;
+        }
+
+        table {
+            border-collapse: collapse;
+            font-size: 14.5px;
+            text-align: center;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        thead {
+            background: #bbdefb;
+        }
+        th {
+            border: 1px solid black;
+        }
+
+        td {
+            border: 1px solid black;
+        }
+        button {
+            margin-top: 20px;
+            width: 100px;
+        }
+
+    </style>
+    <!-- <p style="margin-left:15%">단일 결합입니다</p> -->
+    <h1 class="title">단일 결합</h1>
+    <h3 class="title">Source 테이블 검색</h3>
+    <div class="container">
+        <table>
+            <tr>
+                <td style="background-color: #bbdefb;">테이블명</td>
+                <td><input style="width: 100%;" type="text" name="tablename" id="tablename" ></td>
+                <td style="background-color: #bbdefb;">표준 결합키</td>
+                <td>
+                <select style="width: 100%; height: 100%; border: none;" id="stdkey">
+                    <!-- <option value="주민등록번호">주민등록번호</option>
+                    <option value="전화번호">전화번호</option>
+                    <option value="차량번호">차량번호</option>
+                    <option value="이메일주소">이메일주소</option>
+                    <option value="IP">IP</option> -->
+                </select>
+                </td>
+                <td style="background-color: #bbdefb;">대표속성</td>
+                <td>
+                <select id="reprattr" style="width: 100%; border: none;">
+                    <!-- <option value="">선택 안함</option>
+                    <option value="학업정보">학업정보</option>
+                    <option value="금융정보">금융정보</option>
+                    <option value="회원정보">회원정보</option>
+                    <option value="건강정보">건강정보</option> -->
+                </select>
+                </td>
+                <td style="background-color: #bbdefb;">속성명</td>
+                <td><input style="width: 100%; border: none;" type="text" name="attrname" id="attrname"></td>
+            </tr>
+        </table>
+        <button class="button" onclick="search();">검색</button>
+        <br>
+        <br>
+        <table>
+            <thead>
+                <tr>
+                    <th>테이블 명</th>
+                    <th>레코드 수</th>
+                    <th>대표 속성</th>
+                    <th>대표 결합키</th>
+                </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+        </table>
+        <button onclick="redirectTo()">다음</button>
+    </div>
+
+    <script>
+        // 대표결합키 목록 불러오기
+        (async () => {
+            let fetchedKeyList = await fetch('/stdkey').then((res) => res.json());
+
+            let selectElement = document.getElementById('stdkey');
+
+            let defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.innerHTML = '선택안함';
+
+            selectElement.appendChild(defaultOption);
+
+            for (const stdkey of fetchedKeyList) {
+                let optionElement = document.createElement('option');
+                optionElement.value = stdkey;
+                optionElement.innerHTML = stdkey;
+                selectElement.appendChild(optionElement);
+            }
+        }) ();
+
+
+        // 대표속성 목록 불러오기
+        (async () => {
+            let fetchedAttrList = await fetch('/stdattr').then((res) => res.json());
+
+            let selectElement = document.getElementById('reprattr');
+
+            let defaultOption = document.createElement('option');
+            defaultOption.value = '';
+            defaultOption.innerHTML = '선택안함';
+
+            selectElement.appendChild(defaultOption);
+
+            for (const stdattr of fetchedAttrList) {
+                let optionElement = document.createElement('option');
+                optionElement.value = stdattr;
+                optionElement.innerHTML = stdattr;
+                selectElement.appendChild(optionElement);
+            }
+        }) ();
+
+
+        let selectedElement;
+        function search() {
+            var dict = {}
+            dict['tableName'] = document.getElementById('tablename').value
+            dict['stdKey'] = document.getElementById('stdkey').value
+            dict['reprAttr'] = document.getElementById('reprattr').value
+            dict['attrName'] = document.getElementById('attrname').value
+            
+            var url = '/searchtable?scan=T&tname=' + dict['tableName'] + '&jkey=' + dict['stdKey'] + '&rattr=' + dict['reprAttr'] + '&attr=' + dict['attrName']
+            
+            fetch(url)
+            .then((res) => res.json())
+            .then((data) => {
+                if (data == '' || (dict['tableName'] == '' && dict['stdKey'] == '' && dict['reprAttr'] == '' && dict['attrName'] == '')) {
+                    alert('검색 결과가 없습니다!')
+                } else {
+                    let tbody = document.getElementById('tbody')
+                    tbody.innerHTML = ''
+                    let tr, tname, records, rattrs, rkeys
+                    for (const table of data) {
+                        tr = document.createElement('tr');
+                        tr.id = table["table_name"] + '+' + table["join_keys"]
+                        tr.onclick = () => {
+                            if (selectedElement) document.getElementById(selectedElement).style.backgroundColor = 'white';
+                            selectedElement = table["table_name"] + '+' + table["join_keys"];
+                            document.getElementById(selectedElement).style.backgroundColor = 'lightgray';
+                        }
+                        tname = document.createElement('td');
+                        tname.innerHTML = table["table_name"];
+
+                        records = document.createElement('td');
+                        records.innerHTML = table["records"];
+
+                        rattrs = document.createElement('td');
+                        if (table["repr_attrs"].length > 1) {
+                            const uniqueTmp = {}
+                            table["repr_attrs"].forEach(element => {
+                                uniqueTmp[element] = true;
+                            });
+                            const unique = Object.keys(uniqueTmp)
+                            rattrs.innerHTML = '';
+                            for (const rattr of unique) {
+                                rattrs.innerHTML += rattr + ', ';
+                            }
+                            rattrs.innerHTML = rattrs.innerHTML.slice(0, -2);
+
+                        } else if(table["repr_attrs"].length == 1) {
+                            rattrs.innerHTML = table["repr_attrs"];
+
+                        } else {
+                            rattrs.innerHTML = '-'
+                        }
+                    
+                        rkeys = document.createElement('td');
+                        console.log(table["join_keys"])
+                        if (table["join_keys"].length > 1) {
+                            rkeys.innerHTML = '';
+                            for (const rkey of table["join_keys"]) {
+                                rkeys.innerHTML += rkey + ', ';
+                            }
+                            rkeys.innerHTML = rkeys.innerHTML.slice(0, -2);
+                        } else if(table["join_keys"].length == 1) {
+                            rkeys.innerHTML = table["join_keys"];
+                        } else {
+                            rkeys.innerHTML = '-'
+                        }
+                    
+                    
+
+                        tr.appendChild(tname);
+                        tr.appendChild(records);
+                        tr.appendChild(rattrs);
+                        tr.appendChild(rkeys)
+
+                        tbody.appendChild(tr);
+
+                    }
+                }
+                
+            })
+        }
+        function redirectTo() {
+            console.log(selectedElement)
+            if (selectedElement) window.location.href = '/singlejoin/' + selectedElement;
+            else alert('선택된 테이블이 없습니다');
+        }
+        
+    </script>
+    
+{% endblock %}

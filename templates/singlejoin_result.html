@@ -1,0 +1,79 @@
+{% extends "index.html"  %}
+{% block head %}
+    {% if table_state == 0 %}
+        <meta http-equiv="refresh" content="1;">
+    {% endif %}
+{%  endblock %}
+{% block content %}
+    <style>
+        .title {
+            margin-left: 15%;
+            padding: 0 20px;
+        }
+
+        .container {
+            margin-left: 15%;
+            padding: 0 20px;
+            padding-bottom: 60px;
+        }
+
+        table {
+            border-collapse: collapse;
+            font-size: 14.5px;
+            text-align: center;
+            margin-bottom: 20px;
+            width: 100%;
+        }
+
+        thead {
+            background: #bbdefb;
+        }
+        th {
+            border: 1px solid black;
+        }
+
+        td {
+            border: 1px solid black;
+        }
+
+    </style>
+    <!-- <p style="margin-left:15%">단일 결합입니다 </p> -->
+    <h1 class="title">단일 결합</h1>
+    <h3 class="title">단일 결합 결과</h3>
+    <<div class="container">
+        <table>
+            <thead>
+                <tr>
+                    <th>Source</th>
+                    <th>Source 레코드 수</th>
+                    <th>Source 결합 키 속성</th>
+                    <th>Target</th>
+                    <th>Target 레코드 수</th>
+                    <th>Target 결합 키 속성</th>
+                    <th>대표 결합키</th>
+                    <th>결과 레코드 수</th>
+                    <th>결합 성공률_w1</th>
+                    <th>결합 성공률_w2</th>
+                    <th>결합 진행상황</th>
+                    <th>결합 테이블명</th>
+                </tr>
+            </thead>
+            <tbody>
+            <tr>
+                <th>{{table_A}}</th>
+                <th>{{table_A_rec_count}}</th>
+                <th>{{table_A_attr}}</th>
+                <th>{{table_B }}</th>
+                <th>{{table_B_rec_count}}</th>
+                <th>{{table_B_attr}}</th>
+                <th>{{joinkey}}</th>
+                <th>{{joined_rec_num}}</th>
+                <th>{{source_success}}</th>
+                <th>{{target_success}}</th>
+                <th>{{join_stat}}</th>
+                <th>{{joined_table}}</th>
+            </tr>
+        </tbody>
+        </table>
+    </div>
+{% endblock %}

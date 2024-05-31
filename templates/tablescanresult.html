@@ -1,0 +1,529 @@
+{% extends "index.html"  %}
+{% block content %}
+    <style>
+        .title {
+            margin-left: 15%;
+            padding: 0 20px;
+        }
+
+        .container {
+            margin-left: 15%;
+            padding-bottom: 60px;
+        }
+
+        .result {
+            padding: 0 20px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #boxplot {
+            border: 1px solid black;
+            width: 300px;
+            height: 300px;
+            margin-bottom: 30px;
+        }
+
+        table {
+            border-collapse: collapse;
+            font-size: 14.5px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        thead {
+            background: #bbdefb;
+        }
+
+        th {
+            border: 1px solid black;
+        }
+
+        td {
+            border: 1px solid black;
+        }
+
+        button {
+            width: 250px;
+        }
+
+        button:hover {
+            cursor: pointer;
+        }
+
+        select {
+            text-align: center;
+        }
+
+        .RA select {
+            width: 100%;
+            border: none;
+        }
+
+        .RA select:focus {
+            outline: none;
+        }
+
+        .JK select {
+            width: 100%;
+            border: none;
+        }
+
+        .JK select:focus {
+            outline: none;
+        }
+
+        #save input {
+            width: 250px;
+            height: 30px;
+            background-color: #009688;
+            border: none;
+            color: white;
+            float: right;
+        }
+    </style>
+
+    <h1 class="title">{{table_name}} 속성 도메인 스캔</h1>
+    <div class="container"> 
+        <div class="result">
+            <h3>수치 속성 스캔 결과</h3>
+            <div id="boxplot">
+            </div>
+            <table style="border:1px solid black">
+                <thead>
+                    <tr>
+                        <th>속성명</th>
+                        <th>데이터 타입</th>
+                        <th>NULL 레코드 수</th>
+                        <th>NULL 레코드 비율</th>
+                        <th>상이 수치 값</th>
+                        <th>최대 값</th>
+                        <th>최소 값</th>
+                        <th>0 레코드 수</th>
+                        <th>0 레코드 비율</th>
+                        <th>대표 속성</th>
+                        <th>결합키 후보</th>
+                        <th>대표 결합키</th>
+                    </tr>
+                </thead>
+                <tbody class="n_tbody">
+                </tbody>
+            </table>
+            <button onClick="NumericDownloadCSV()">수치 속성 스캔 결과 내려받기</button>
+        </div>
+        <div class="result">
+            <h3>범주 속성 스캔 결과</h3>
+            <table style="border:1px solid black">
+                <thead>
+                    <tr>
+                        <th>속성명</th>
+                        <th>데이터 타입</th>
+                        <th>NULL 레코드 수</th>
+                        <th>NULL 레코드 비율</th>
+                        <th>상이 범주 값</th>
+                        <th>특수문자 포함 레코드 수</th>
+                        <th>특수문자 포함 레코드 비율</th>
+                        <th>대표 속성</th>
+                        <th>결합키 후보</th>
+                        <th>대표 결합키</th>
+                    </tr>
+                </thead>
+                <tbody class="c_tbody">
+                </tbody>
+            </table>
+            <button onClick="CategoricDownloadCSV()">범주 속성 스캔 결과 내려받기</button>
+            <form action="/tablescan/{{ table_name }}" method="post" id="save">
+                <input type="submit" value="변경사항 저장">
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdn.plot.ly/plotly-2.16.1.min.js"></script>
+
+    <script>
+
+        document.querySelector('.w3-container').style.display = 'none';
+
+        /* 총 레코드 수 */
+        let total_record = parseInt('{{total_record}}')
+
+        /* string -> object로 변경 */
+        let attr = '{{attr}}'
+        attr = attr.replace(/&#39;/g,"")
+        attr = attr.replace("[","")
+        attr = attr.replace("]","")
+        attr = attr.replace(/(\s*)/g,"")
+        attr = attr.split(',')
+
+        let datype = '{{datype}}'
+        datype = datype.replace(/&#39;/g,"")
+        datype = datype.replace("[","")
+        datype = datype.replace("]","")
+        datype = datype.replace(/(\s*)/g,"")
+        datype = datype.split(',')
+
+        let nullcount = '{{null}}'
+        nullcount= nullcount.replace("[","")
+        nullcount = nullcount.replace("]","")
+        nullcount = nullcount.split(',')
+
+        let recordcount = '{{record}}'
+        recordcount= recordcount.replace("[","")
+        recordcount = recordcount.replace("]","")
+        recordcount = recordcount.split(',')
+
+        let dist = '{{distinct}}'
+        dist = dist.replace("[","")
+        dist = dist.replace("]","")
+        dist = dist.split(',')
+
+        let isnumeric = '{{isnumeric}}'
+        isnumeric = isnumeric.replace(/&#39;/g,"")
+        isnumeric = isnumeric.replace("[","")
+        isnumeric = isnumeric.replace("]","")
+        isnumeric = isnumeric.replace(/(\s*)/g,"")
+        isnumeric = isnumeric.split(',')
+
+        let iscandidate = '{{candidate}}'
+        iscandidate = iscandidate.replace(/&#39;/g,"")
+        iscandidate = iscandidate.replace("[","")
+        iscandidate = iscandidate.replace("]","")
+        iscandidate = iscandidate.replace(/(\s*)/g,"")
+        iscandidate = iscandidate.split(',')
+        candidate = []
+        for (let i=0;i<iscandidate.length;i++) {
+            if (iscandidate[i]=='T') {
+                candidate.push('O')
+            } else {
+                candidate.push('X')
+            }
+        }
+
+        let zerocount = '{{zero}}'
+        zerocount = zerocount.replace("[","")
+        zerocount = zerocount.replace("]","")
+        zerocount = zerocount.split(',')
+
+        let minv = '{{minv}}'
+        minv = minv.replace("[","")
+        minv = minv.replace("]","")
+        minv = minv.split(',')
+
+        let maxv = '{{maxv}}'
+        maxv = maxv.replace("[","")
+        maxv = maxv.replace("]","")
+        maxv = maxv.split(',')
+
+        let symbolcount = '{{symbol}}'
+        symbolcount = symbolcount.replace("[","")
+        symbolcount = symbolcount.replace("]","")
+        symbolcount = symbolcount.split(',')
+
+
+        /* 튜플 생성 */
+        const CreateTuple = (num) => {
+            let numeric_tr = ""
+            let categoric_tr = ""
+
+            let numeric_count = 0;
+            let categoric_count = 0;
+
+            for (let i=0; i<num; i++) {
+                if (isnumeric[i] == 'T') {
+                    numeric_tr += `
+                    <tr id=${attr[i]}>
+                        <td>${attr[i]}</td>
+                        <td>${datype[i]}</td>
+                        <td>${nullcount[i]}</td>
+                        <td>${(parseInt(nullcount[i])/parseInt(recordcount[i]))}</td>
+                        <td>${dist[i]}</td>
+                        <td>${datype[i] === "INT" ? parseInt(maxv[numeric_count]) : maxv[numeric_count]}</td>
+                        <td>${datype[i] === "INT" ? parseInt(minv[numeric_count]) : minv[numeric_count]}</td>
+                        <td>${zerocount[numeric_count]}</td>
+                        <td>${(zerocount[numeric_count]/parseInt(recordcount[i]))}</td>
+                        <td class='RA'></td>
+                        <td>${candidate[i]}</td>
+                        <td class='JK'></td>
+                    </tr>
+                    ` // INT의 최대, 최소를 정수로 표시
+                    document.querySelector('.n_tbody').innerHTML = numeric_tr;
+                    numeric_count += 1;
+                }
+                else if (isnumeric[i] == 'F') {
+                    categoric_tr += `
+                    <tr id=${attr[i]}>
+                        <td>${attr[i]}</td>
+                        <td>${datype[i]}</td>
+                        <td>${nullcount[i]}</td>
+                        <td>${(parseInt(nullcount[i])/parseInt(recordcount[i]))}</td>
+                        <td>${dist[i]}</td>
+                        <td>${symbolcount[categoric_count]}</td>
+                        <td>${(symbolcount[categoric_count]/parseInt(recordcount[i]))}</td>
+                        <td class='RA'></td>
+                        <td>${candidate[i]}</td>
+                        <td class='JK'></td>
+                    </tr>
+                    `
+                    document.querySelector('.c_tbody').innerHTML = categoric_tr;
+                    categoric_count += 1;
+                }
+            }   
+        };
+
+        CreateTuple(total_record)
+
+
+        /* BOXPLOT 생성 */
+
+        var reg = /[^0-9]/g;
+        var reg1 = /[\\(\\)]/g
+        
+        let numeric_attr = '{{numeric_attr}}';
+        numeric_attr = numeric_attr.split(',');
+
+        let numeric_attr_data = '{{numeric_attr_data}}'
+        numeric_attr_data = numeric_attr_data.replace(/&#39;/g,"")
+        numeric_attr_data = numeric_attr_data.replace(reg1,"")
+        numeric_attr_data = numeric_attr_data.replaceAll(" ","")
+        numeric_attr_data = numeric_attr_data.split(',')
+
+        let data = []
+        for (let i=1; i<=numeric_attr.length; i++) {
+            window[numeric_attr[i-1]] =[];
+            for (let j=i; j<=numeric_attr_data.length; j+=numeric_attr.length) {
+                window[numeric_attr[i-1]].push(parseInt(numeric_attr_data[j-1]));
+            }
+
+            window['trace'+i] = {
+                y:window[numeric_attr[i-1]],
+                type: 'box',
+                name: numeric_attr[i-1],
+                showlegend: false,
+            }
+
+            data.push(window['trace'+i])
+        }
+
+        var layout = {
+            width: 290,
+            height: 290,
+            margin: {
+                l:30,
+                r:30,
+                t:30,
+                b:30
+            }
+        }
+
+        Plotly.newPlot('boxplot',data,layout, {scrollZoom:true})
+
+
+        /* 대표속성 */
+        let attr_name_RA = '{{attr_name_RA}}'
+        attr_name_RA = attr_name_RA.replace(/&#39;/g,"")
+        attr_name_RA = attr_name_RA.replace("[","")
+        attr_name_RA = attr_name_RA.replace("]","")
+        attr_name_RA = attr_name_RA.replace(/(\s*)/g,"")
+        attr_name_RA = attr_name_RA.split(',')
+
+
+        let repr_attr = '{{repr_attr}}'
+        repr_attr = repr_attr.replace(/&#39;/g,"")
+        repr_attr = repr_attr.replace("[","")
+        repr_attr = repr_attr.replace("]","")
+        repr_attr = repr_attr.replace(/(\s*)/g,"")
+        repr_attr = repr_attr.split(',')
+
+
+        let RAList = document.querySelectorAll('.RA');
+        (async () => {
+            let fetchedAttrList = await fetch('/stdattr').then((res) => res.json());
+
+            for (const node of RAList) {
+                let attributeName = node.parentNode.id;
+
+                let selectElement = document.createElement('select');
+                selectElement.setAttribute('name', attributeName + '_RA');
+                selectElement.setAttribute('form', 'save');
+
+                let defaultOption = document.createElement('option');
+                if (attr_name_RA.includes(attributeName)) {
+                    // 대표속성 있는 속성
+                    let n = attr_name_RA.indexOf(attributeName);
+                    defaultOption.innerHTML = repr_attr[n];
+                    selectElement.disabled = true;
+                } else {
+                    // 대표속성 없는 속성
+                    defaultOption.value = 'Null';
+                    defaultOption.innerHTML = '';
+                }
+                
+                selectElement.appendChild(defaultOption);
+
+                for (const stdattr of fetchedAttrList) {
+                    let optionElement = document.createElement('option');
+                    optionElement.value = stdattr;
+                    optionElement.innerHTML = stdattr;
+                    selectElement.appendChild(optionElement);
+                }
+
+                node.appendChild(selectElement);
+            }
+        })();
+
+
+        /* 대표결합키 */
+        let attr_name_JK = '{{attr_name_JK}}'
+        attr_name_JK = attr_name_JK.replace(/&#39;/g,"")
+        attr_name_JK = attr_name_JK.replace("[","")
+        attr_name_JK = attr_name_JK.replace("]","")
+        attr_name_JK = attr_name_JK.replace(/(\s*)/g,"")
+        attr_name_JK = attr_name_JK.split(',')
+
+
+        let join_key = '{{join_key}}'
+        join_key = join_key.replace(/&#39;/g,"")
+        join_key = join_key.replace("[","")
+        join_key = join_key.replace("]","")
+        join_key = join_key.replace(/(\s*)/g,"")
+        join_key = join_key.split(',')
+        
+
+        let JKList = document.querySelectorAll('.JK');
+        (async () => {
+            let fetchedKeyList = await fetch('/stdkey').then((res) => res.json());
+
+            for (const node of JKList) {
+                let attributeName = node.parentNode.id;
+
+                let selectElement = document.createElement('select');
+                selectElement.setAttribute('name', attributeName + '_JK');
+                selectElement.setAttribute('form', 'save');
+
+                let defaultOption = document.createElement('option');
+                if (attr_name_JK.includes(attributeName)) {
+                    // 대표결합키 있는 속성
+                    let n = attr_name_JK.indexOf(attributeName);
+                    defaultOption.innerHTML = join_key[n];
+                    selectElement.disabled = true;
+                } else {
+                    // 대표결합키 없는 속성
+                    defaultOption.value = 'Null';
+                    defaultOption.innerHTML = '';
+                }
+
+                selectElement.appendChild(defaultOption);
+
+                for (const stdkey of fetchedKeyList) {
+                    let optionElement = document.createElement('option');
+                    optionElement.value = stdkey;
+                    optionElement.innerHTML = stdkey;
+                    selectElement.appendChild(optionElement);
+                }
+
+                // 결합키 후보가 아닐 경우 대표결합키 설정 불가능
+                if (iscandidate[attr.indexOf(attributeName)] === 'F') selectElement.disabled = true;
+
+                node.appendChild(selectElement);
+            }
+        })();
+
+        let tablename = '{{table_name}}'
+
+
+        /* CSV파일 내려받기 */
+        function NumericDownloadCSV() {
+            
+            var a = "";
+            a += "속성명, 데이터 타입, NULL 레코드 수, NULL 레코드 비율, 상이 수치 값, 최대 값, 최소 값, 0 레코드 수, 0 레코드 비율, 대표 속성, 결합키 후보, 대표 결합키 \r\n"
+            let count = 0;
+            for (let j=0; j < attr.length; j++) {
+                if (isnumeric[j] == 'T') {
+
+                    /* 대표속성_csv */
+                    let repr_attr_csv
+
+                    if (attr_name_RA.includes(attr[j])) {
+                        let n = attr_name_RA.indexOf(attr[j])
+                        repr_attr_csv = repr_attr[n] 
+                    } else {
+                        repr_attr_csv = ''
+                    }
+
+                    /* 대표결합키_csv */
+                    let join_key_csv
+
+                    if (attr_name_JK.includes(attr[j])) {
+                        let m = attr_name_JK.indexOf(attr[j])
+                        join_key_csv = join_key[m]
+                    } else {
+                        join_key_csv = ''
+                    }
+
+                    a += attr[j] + ',' + datype[j] + ',' + parseInt(nullcount[j]) + ',' + (parseInt(nullcount[count])/parseInt(recordcount[j])) + ',' + dist[j] + ',' + maxv[count] + ',' + minv[count] + ',' + zerocount[count] + ',' + (parseInt(zerocount[count])/parseInt(recordcount[j])) + ',' + repr_attr_csv + ',' + candidate[j] + ',' + join_key_csv +  '\r\n';
+                    count += 1;
+                }
+            }
+            
+            var downloadLink = document.createElement("a");
+            var blob = new Blob(["\ufeff"+a], { type: "text/csv;charset=utf-8"});
+            var url = URL.createObjectURL(blob);
+            downloadLink.href = url;
+            downloadLink.download = tablename + "수치 속성 스캔 결과.csv";
+
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+
+            
+        }
+
+        function CategoricDownloadCSV() {
+
+            var a = "";
+            a += "속성명, 데이터 타입, NULL 레코드 수, NULL 레코드 비율, 상이 범주 값, 특수문자 포함 레코드 수, 특수문자 포함 레코드 비율, 대표 속성, 결합키 후보, 대표 결합키 \r\n"
+            let count = 0;
+            for (let j=0; j < attr.length; j++) {
+                if (isnumeric[j] == 'F') {
+
+                    /* 대표속성_csv */
+                    let repr_attr_csv
+
+                    if (attr_name_RA.includes(attr[j])) {
+                        let n = attr_name_RA.indexOf(attr[j])
+                        repr_attr_csv = repr_attr[n] 
+                    } else {
+                        repr_attr_csv = ''
+                    }
+
+                    /* 대표결합키_csv */
+                    let join_key_csv
+
+                    if (attr_name_JK.includes(attr[j])) {
+                        let m = attr_name_JK.indexOf(attr[j])
+                        join_key_csv = join_key[m]
+                    } else {
+                        join_key_csv = ''
+                    }
+
+                    a += attr[j] + ',' + datype[j] + ',' + parseInt(nullcount[j]) + ',' + (parseInt(nullcount[count])/parseInt(recordcount[j])) + ',' + dist[j] + ',' + symbolcount[count] + ',' + (parseInt(symbolcount[count])/parseInt(recordcount[j])) + ',' + repr_attr_csv + ',' + candidate[j] + ',' + join_key_csv +  '\r\n';
+                    count += 1;
+                }
+            }
+            
+            var downloadLink = document.createElement("a");
+            var blob = new Blob(["\ufeff"+a], { type: "text/csv;charset=utf-8"});
+            var url = URL.createObjectURL(blob);
+            downloadLink.href = url;
+            downloadLink.download = tablename + "범주 속성 스캔 결과.csv";
+
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+
+            
+        }
+        
+    </script>
+
+{% endblock %}

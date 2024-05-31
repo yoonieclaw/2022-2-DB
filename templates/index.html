@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='CSS/style.css') }}" -->
+    <title>데이터 특성 스캔 및 결합 시스템</title>
+    
+    {% block head%}{% endblock %}
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="w3-sidebar w3-light-grey w3-bar-block" style="width:15%">
+    <h6 class="w3-bar-item">
+        <div class="w3-container w3-gray" id="status">DB 연결정보 <br> HOST: <br> PORT: <br> Database: </div>
+    </h5>
+        <a href="/dblogin" class="w3-bar-item w3-button">DB 연결 관리</a>
+        <a href="/tablescan" class="w3-bar-item w3-button">테이블 속성 도메인 스캔</a>
+        <a href="/tablerevise" class="w3-bar-item w3-button">테이블 속성 편집</a>
+        <a href="/singlejoin" class="w3-bar-item w3-button">단일 결합</a>
+        <a href="/multiplejoin" class="w3-bar-item w3-button">다중 결합</a>
+        <a href="/result" class="w3-bar-item w3-button">결과 조회</a>
+        <a href="/preferences" class="w3-bar-item w3-button">설정</a>
+    </div>
+  
+    <!-- Page Content -->
+    <div style="margin-left:15%">
+        <div class="w3-container w3-teal">
+            <h1>데이터 특성 스캔 및 결합 시스템</h1>
+        </div>
+    </div>
+    {% block content %}{% endblock %}
+    <script>
+        let host, port, database;
+
+        fetch('/dblogin/status')
+        .then((res) => res.json())
+        .then((data) => { document.getElementById('status').innerHTML = `DB 연결정보 <br> \
+                                                            HOST: ${data['host']}<br> \
+                                                            PORT: ${data['port']}<br> \
+                                                            Database: ${data['database']}`; })
+        .catch((err) => console.log(`Internal server problem: ${err.message}`))
+    </script>
+</body>
+</html>

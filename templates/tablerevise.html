@@ -1,0 +1,83 @@
+{% extends "index.html"  %}
+{% block content %}
+    <style>
+        table {
+            border-collapse: collapse;
+            text-align: center;
+            border: 1px solid black
+        }
+        thead {
+            background-color: #bbdefb;
+        }
+        th {
+            border: 1px solid black;
+        }
+        td {
+            border: 1px solid black;
+        }
+        button {
+            margin-top: 20px;
+            width: 100px;
+        }
+    </style>
+    
+    <h1 style="margin-left:15%; padding: 0 20px">테이블 속성 편집</h1>
+    <div style="margin-left:15%; padding: 0 20px">
+        <h3>속성 스캔 완료 테이블 목록</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>테이블 명</th>
+                    <th>레코드 수</th>
+                    <th>속성</th>
+                </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+        </table>
+        <button onclick="redirectTo()">다음</button>
+    </div>
+    <script>
+        let selectedElement;
+
+        fetch('/searchtable?scan=T')
+        .then((res) => res.json())
+        .then((data) => {
+            let tbody = document.getElementById('tbody');
+
+            let tr, tname, records, attrs;
+            for (const table of data) {
+                tr = document.createElement('tr');
+                tr.id = table["table_name"]
+                tr.onclick = () => {
+                    if (selectedElement) document.getElementById(selectedElement).style.backgroundColor = 'white';
+                    selectedElement = table["table_name"];
+                    document.getElementById(selectedElement).style.backgroundColor = 'lightgray';
+                }
+
+                tname = document.createElement('td');
+                tname.innerHTML = table["table_name"];
+
+                records = document.createElement('td');
+                records.innerHTML = table["records"];
+
+                attrs = document.createElement('td');
+                attrs.innerHTML = '';
+                for (const attr of table["attrs"]) {
+                    attrs.innerHTML += attr + ', ';
+                }
+                attrs.innerHTML = attrs.innerHTML.slice(0, -2);
+
+                tr.appendChild(tname);
+                tr.appendChild(records);
+                tr.appendChild(attrs);
+
+                tbody.appendChild(tr);
+            }
+        });
+        
+        function redirectTo() {
+            if (selectedElement) window.location.href = '/tablerevise/' + selectedElement;
+            else alert('선택된 테이블이 없습니다');
+        }
+    </script>
+{% endblock %}

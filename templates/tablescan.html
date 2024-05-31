@@ -1,0 +1,39 @@
+{% extends "index.html"  %}
+{% block content %}
+    <style>
+        table {
+            border-collapse: collapse;
+            text-align: center;
+            border: 1px solid black
+        }
+        thead {
+            background-color: #bbdefb;
+        }
+        th {
+            border: 1px solid black;
+        }
+        td {
+            border: 1px solid black;
+        }
+        button {
+            margin-top: 20px;
+            width: 100px;
+        }
+    </style>
+    <h1 style="margin-left:15%; padding: 0 20px">테이블 속성 도메인 스캔</h1>
+    <div style="margin-left:15%; padding: 0 20px">
+        <h3>대상 테이블 선택</h3>
+        <table>
+            <thead>
+                <tr>
+                    <th>테이블 명</th>
+                    <th>레코드 수</th>
+                    <th>속성</th>
+                </tr>
+            </thead>
+            <tbody id="tbody"></tbody>
+        </table>
+        <button onclick="redirectTo()">다음</button>
+    </div>
+    <script src="{{ url_for('static', filename='js/tablescan.js') }}"></script>
+{% endblock %}
